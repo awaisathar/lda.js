@@ -1,0 +1,77 @@
+body {
+	font-family:'Trebuchet MS', Helvetica, Arial, sans-serif;
+	font-size:10pt;
+}
+#slider {
+	width:100px;
+	margin-left:10px;
+	display: inline-block;
+	vertical-align: middle;
+}	
+.box{
+	height: 8px;
+	vertical-align: middle;
+	margin-top: 8px;
+	display: table-cell;
+}
+
+#topiccloud {
+}
+
+.topicbox {
+	padding: 2px;
+	border: 2px solid lightgray;
+	border-radius: 10px;
+	margin: 2px;
+}
+
+.topicbar 	{
+	border:1px solid black;
+}
+ 
+.color0{ color:#FF0000;} .bgcolor0{ background-color:#FF0000;} 
+.color1{ color:#0000FF;} .bgcolor1{ background-color:#0000FF;} 
+.color2{ color:#00FF00;} .bgcolor2{ background-color:#00FF00;} 
+.color3{ color:#808000;} .bgcolor3{ background-color:#808000;} 
+.color4{ color:#00FF00;} .bgcolor4{ background-color:#00FF00;} 
+.color5{ color:#008000;} .bgcolor5{ background-color:#008000;} 
+.color6{ color:#00FFFF;} .bgcolor6{ background-color:#00FFFF;} 
+.color7{ color:orange;} .bgcolor7{ background-color:orange;} 
+.color8{ color:#800000;} .bgcolor8{ background-color:#800000;} 
+.color9{ color:#000080;} .bgcolor9{ background-color:#000080;} 
+.color10{ color:#FF00FF;} .bgcolor10{ background-color:#FF00FF;} 
+.color11{ color:#800080;} .bgcolor11{ background-color:#800080;} 
+.color12{ color:#C0C0C0;} .bgcolor12{ background-color:#C0C0C0;} 
+
+.lines {
+	margin: 0px;
+	padding: 2px;
+	display: table;
+ }
+
+ #text {
+	font-family:'Trebuchet MS', Helvetica, Arial, sans-serif;
+	font-size:10pt;
+	width:80%;
+	margin-left:10%;
+}
+
+#menu {
+	padding: 15px;
+	text-align:center;
+}
+#btnTopicise {
+	margin:15px;
+	padding:3px;
+	width: 150px;
+}
+
+#titletxt{
+	font-size: 24px;
+	text-align: center;
+	font-weight: bold;
+}
+#titledesc {
+	font-size: 16px;
+	padding:20px;
+}

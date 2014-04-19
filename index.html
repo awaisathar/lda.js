@@ -1,0 +1,265 @@
+<html>
+<head>
+<title>LDA Topic Modelling in JS</title>
+<meta charset="utf-8">
+<link type="text/css" href="css/ui-lightness/jquery-ui-1.8.21.custom.css" rel="stylesheet" />
+<link type="text/css" href="css/lda.css" rel="stylesheet" />
+<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.21.custom.min.js"></script>
+<script src="js/jquery.tagcanvas.min.js" type="text/javascript"></script>
+<script type="text/javascript" src="js/stopwords.js"></script>
+<script type="text/javascript" src="js/lda.js"></script>
+<script>
+
+function topicise() {
+	//console.log("analysing "+sentences.length+" sentences...");
+	var documents = new Array();
+	var f = {};
+	var vocab=new Array();
+	var docCount=0;
+	for(var i=0;i<sentences.length;i++) {
+		if (sentences[i]=="") continue;
+		var words = sentences[i].split(/[\s,\"]+/);
+		if(!words) continue;
+		var wordIndices = new Array();
+		for(var wc=0;wc<words.length;wc++) {
+			var w=words[wc].toLowerCase().replace(/[^a-z\'A-Z0-9 ]+/g, '');
+			//TODO: Add stemming
+			if (w=="" || w.length==1 || stopwords[w] || w.indexOf("http")==0) continue;
+			if (f[w]) { 
+				f[w]=f[w]+1;			
+			} 
+			else if(w) { 
+				f[w]=1; 
+				vocab.push(w); 
+			};	
+			wordIndices.push(vocab.indexOf(w));
+		}
+		if (wordIndices && wordIndices.length>0) {
+			documents[docCount++] = wordIndices;
+		}
+	}
+		
+	var V = vocab.length;
+	var M = documents.length;
+	var K = parseInt($( "#topics" ).val());
+	var alpha = 0.1;  // per-document distributions over topics
+	var beta = .01;  // per-topic distributions over words
+
+	lda.configure(documents,V,10000, 2000, 100, 10);
+	lda.gibbs(K, alpha, beta);
+
+	var theta = lda.getTheta();
+	var phi = lda.getPhi();
+
+	var text = '';
+
+	//topics
+	var topTerms=20;
+	var topicText = new Array();
+	for (var k = 0; k < phi.length; k++) {
+		text+='<canvas id="topic'+k+'" class="topicbox color'+k+'"><ul>';
+		var tuples = new Array();
+		for (var w = 0; w < phi[k].length; w++) {
+			 tuples.push(""+phi[k][w].toPrecision(2)+"_"+vocab[w]);
+		}
+		tuples.sort().reverse();
+		if(topTerms>vocab.length) topTerms=vocab.length;
+		topicText[k]='';
+		for (var t = 0; t < topTerms; t++) {
+			var topicTerm=tuples[t].split("_")[1];
+			var prob=parseInt(tuples[t].split("_")[0]*100);
+			if (prob<0.0001) continue;
+			text+=( '<li><a href="javascript:void(0);" data-weight="'+(prob)+'" title="'+prob+'%">'+topicTerm +'</a></li>' );			
+			console.log("topic "+k+": "+ topicTerm+" = " + prob  + "%");
+			topicText[k] += ( topicTerm +" ");
+		}
+		text+='</ul></canvas>';
+	}
+	$('#topiccloud').html(text);
+	
+	text='<div class="spacer"> </div>';
+	//highlight sentences	
+	for (var m = 0; m < theta.length; m++) {
+		text+='<div class="lines">';
+		text+='<div style="display:table-cell;width:100px;padding-right:5px">';
+		for (var k = 0; k < theta[m].length; k++) {
+			text+=('<div class="box bgcolor'+k+'" style="width:'+parseInt(""+(theta[m][k]*100))+'px" title="'+topicText[k]+'"></div>');
+		}
+		text+='</div>'+sentences[m]+'</div>';
+	}
+	$("#output").html(text);
+	
+	for (var k = 0; k < phi.length; k++) {
+		if(!$('#topic'+k).tagcanvas({
+		      textColour: $('#topic'+k).css('color'),
+			  maxSpeed: 0.05,
+			 initial: [(Math.random()>0.5 ? 1: -1) *Math.random()/2,(Math.random()>0.5 ? 1: -1) *Math.random()/2],  //[0.1,-0.1],
+			  decel: 0.98,
+			  reverse: true,
+			  weightSize:10,
+			  weightMode:'size',
+			  weightFrom:'data-weight',
+			  weight: true
+			}))	
+		{
+			$('#topic'+k).hide();
+		} else {
+			//TagCanvas.Start('topic'+k);
+		}
+	}
+}
+
+$(document).ready(function(){
+	var select = $( "#topics" );
+	var slider = $( "<div id='slider'></div>" ).insertAfter( select ).slider({
+		min: 2,
+		max: 10,
+		range: "min",
+		value: select[0].selectedIndex+2,
+		slide: function( event, ui ) {
+			select[0].selectedIndex = ui.value-2;
+		}
+	});
+	$( "#topics" ).change(function() {
+		slider.slider( "value", this.selectedIndex + 2 );
+	});
+});
+
+function btnTopiciseClicked() {
+	$('#btnTopicise').attr('disabled','disabled');
+	sentences = $('#text').val().split("\n");
+	topicise();
+	$('#btnTopicise').removeAttr('disabled');
+
+	
+}
+
+var sentences;
+</script>
+</head>
+<body>
+<div id="titletxt">LDA-Based Topic Modelling in Javascript</div>
+<div id="titledesc"><p>Topic modelling means detecting “abstract” topics from a collection of text documents. The most common text book technique to do that is using Latent Dirichlet Allocation. Simply put, LDA is a statistical algorithm which takes documents as input and produces a list of topics. One catch is that you have to tell it how many topics you want. There’s much more to it but since this is not a tutorial post, I will stop here. (If you are interested in how it works, read the references given on the wiki page.)</p>
+<p>Here's a javascript version of LDA, based on my no-longer-functioning <a href"http://chaoticity.com/lda-based-topic-modelling-in-javascript/">earlier work</a>. For testing, I use a subset of the SMS Spam Corpus availabel <a href="http://www.dt.fee.unicamp.br/~tiago/smsspamcollection/">here</a> (and thus take no responsibility of the inappropriateness of the text within :) ). Each topic is represented as a word cloud; the larger a word, the more weight it has in the topic. The source sentences are displayed again with a bar which shows the percentage distribution of topics for that sentence. Hovering on each area in the bar would show you the words in the topic. You can of course replace it with anyother text, change the number of topics using the slider, and press the 'Analyse' button to see it work.  </p></div>
+<textarea id="text" cols="80" rows="10">Go until jurong point, crazy.. Available only in bugis n great world la e buffet... Cine there got amore wat...
+Ok lar... Joking wif u oni...
+Free entry in 2 a wkly comp to win FA Cup final tkts 21st May 2005. Text FA to 87121 to receive entry question(std txt rate)T&C's apply 08452810075over18's
+U dun say so early hor... U c already then say...
+Nah I don't think he goes to usf, he lives around here though
+FreeMsg Hey there darling it's been 3 week's now and no word back! I'd like some fun you up for it still? Tb ok! XxX std chgs to send, £1.50 to rcv
+Even my brother is not like to speak with me. They treat me like aids patent.
+As per your request 'Melle Melle (Oru Minnaminunginte Nurungu Vettam)' has been set as your callertune for all Callers. Press *9 to copy your friends Callertune
+WINNER!! As a valued network customer you have been selected to receivea £900 prize reward! To claim call 09061701461. Claim code KL341. Valid 12 hours only.
+Had your mobile 11 months or more? U R entitled to Update to the latest colour mobiles with camera for Free! Call The Mobile Update Co FREE on 08002986030
+I'm gonna be home soon and i don't want to talk about this stuff anymore tonight, k? I've cried enough today.
+SIX chances to win CASH! From 100 to 20,000 pounds txt> CSH11 and send to 87575. Cost 150p/day, 6days, 16+ TsandCs apply Reply HL 4 info
+URGENT! You have won a 1 week FREE membership in our £100,000 Prize Jackpot! Txt the word: CLAIM to No: 81010 T&C www.dbuk.net LCCLTD POBOX 4403LDNW1A7RW18
+I've been searching for the right words to thank you for this breather. I promise i wont take your help for granted and will fulfil my promise. You have been wonderful and a blessing at all times.
+I HAVE A DATE ON SUNDAY WITH WILL!!
+XXXMobileMovieClub: To use your credit, click the WAP link in the next txt message or click here>> http://wap. xxxmobilemovieclub.com?n=QJKGIGHJJGCBL
+Oh k...i'm watching here:)
+Eh u remember how 2 spell his name... Yes i did. He v naughty make until i v wet.
+Fine if thats the way u feel. Thats the way its gota b
+England v Macedonia - dont miss the goals/team news. Txt ur national team to 87077 eg ENGLAND to 87077 Try:WALES, SCOTLAND 4txt/ú1.20 POBOXox36504W45WQ 16+
+Is that seriously how you spell his name?
+I‘m going to try for 2 months ha ha only joking
+So ü pay first lar... Then when is da stock comin...
+Aft i finish my lunch then i go str down lor. Ard 3 smth lor. U finish ur lunch already?
+Ffffffffff. Alright no way I can meet up with you sooner?
+Just forced myself to eat a slice. I'm really not hungry tho. This sucks. Mark is getting worried. He knows I'm sick when I turn down pizza. Lol
+Lol your always so convincing.
+Did you catch the bus ? Are you frying an egg ? Did you make a tea? Are you eating your mom's left over dinner ? Do you feel my Love ?
+I'm back & we're packing the car now, I'll let you know if there's room
+Ahhh. Work. I vaguely remember that! What does it feel like? Lol
+Wait that's still not all that clear, were you not sure about me being sarcastic or that that's why x doesn't want to live with us
+Yeah he got in at 2 and was v apologetic. n had fallen out and she was actin like spoilt child and he got caught up in that. Till 2! But we won't go there! Not doing too badly cheers. You? 
+K tell me anything about you.
+For fear of fainting with the of all that housework you just did? Quick have a cuppa
+Thanks for your subscription to Ringtone UK your mobile will be charged £5/month Please confirm by replying YES or NO. If you reply NO you will not be charged
+Yup... Ok i go home look at the timings then i msg ü again... Xuhui going to learn on 2nd may too but her lesson is at 8am
+Oops, I'll let you know when my roommate's done
+I see the letter B on my car
+Anything lor... U decide...
+Hello! How's you and how did saturday go? I was just texting to see if you'd decided to do anything tomo. Not that i'm trying to invite myself or anything!
+Pls go ahead with watts. I just wanted to be sure. Do have a great weekend. Abiola
+Did I forget to tell you ? I want you , I need you, I crave you ... But most of all ... I love you my sweet Arabian steed ... Mmmmmm ... Yummy
+07732584351 - Rodger Burns - MSG = We tried to call you re your reply to our sms for a free nokia mobile + free camcorder. Please call now 08000930705 for delivery tomorrow
+WHO ARE YOU SEEING?
+Great! I hope you like your man well endowed. I am  <#>  inches...
+No calls..messages..missed calls
+Didn't you get hep b immunisation in nigeria.
+Fair enough, anything going on?
+Yeah hopefully, if tyler can't do it I could maybe ask around a bit
+U don't know how stubborn I am. I didn't even want to go to the hospital. I kept telling Mark I'm not a weak sucker. Hospitals are for weak suckers.
+What you thinked about me. First time you saw me in class.
+A gram usually runs like  <#> , a half eighth is smarter though and gets you almost a whole second gram for  <#>
+K fyi x has a ride early tomorrow morning but he's crashing at our place tonight
+Wow. I never realized that you were so embarassed by your accomodations. I thought you liked it, since i was doing the best i could and you always seemed so happy about "the cave". I'm sorry I didn't and don't have more to give. I'm sorry i offered. I'm sorry your room was so embarassing.
+SMS. ac Sptv: The New Jersey Devils and the Detroit Red Wings play Ice Hockey. Correct or Incorrect? End? Reply END SPTV
+Do you know what Mallika Sherawat did yesterday? Find out now @  <URL>
+Congrats! 1 year special cinema pass for 2 is yours. call 09061209465 now! C Suprman V, Matrix3, StarWars3, etc all 4 FREE! bx420-ip4-5we. 150pm. Dont miss out! 
+Sorry, I'll call later in meeting.
+Tell where you reached
+Yes..gauti and sehwag out of odi series.
+Your gonna have to pick up a $1 burger for yourself on your way home. I can't even move. Pain is killing me.
+Ha ha ha good joke. Girls are situation seekers.
+Its a part of checking IQ
+Sorry my roommates took forever, it ok if I come by now?
+Ok lar i double check wif da hair dresser already he said wun cut v short. He said will cut until i look nice.
+As a valued customer, I am pleased to advise you that following recent review of your Mob No. you are awarded with a £1500 Bonus Prize, call 09066364589
+Today is "song dedicated day.." Which song will u dedicate for me? Send this to all ur valuable frnds but first rply me...
+Urgent UR awarded a complimentary trip to EuroDisinc Trav, Aco&Entry41 Or £1000. To claim txt DIS to 87121 18+6*£1.50(moreFrmMob. ShrAcomOrSglSuplt)10, LS1 3AJ
+Did you hear about the new "Divorce Barbie"? It comes with all of Ken's stuff!
+I plane to give on this month end.
+Wah lucky man... Then can save money... Hee...
+Finished class where are you.
+HI BABE IM AT HOME NOW WANNA DO SOMETHING? XX
+K..k:)where are you?how did you performed?
+U can call me now...
+I am waiting machan. Call me once you free.
+Thats cool. i am a gentleman and will treat you with dignity and respect.
+I like you peoples very much:) but am very shy pa.
+Does not operate after  <#>  or what
+Its not the same here. Still looking for a job. How much do Ta's earn there.
+Sorry, I'll call later
+K. Did you call me just now ah? 
+Ok i am on the way to home hi hi
+You will be in the place of that man
+Yup next stop.
+I call you later, don't have network. If urgnt, sms me.
+For real when u getting on yo? I only need 2 more tickets and one more jacket and I'm done. I already used all my multis.
+Yes I started to send requests to make it but pain came back so I'm back in bed. Double coins at the factory too. I gotta cash in all my nitros.
+I'm really not up to it still tonight babe
+Ela kano.,il download, come wen ur free..
+Yeah do! Don‘t stand to close tho- you‘ll catch something!
+Sorry to be a pain. Is it ok if we meet another night? I spent late afternoon in casualty and that means i haven't done any of y stuff42moro and that includes all my time sheets and that. Sorry. 
+Smile in Pleasure Smile in Pain Smile when trouble pours like Rain Smile when sum1 Hurts U Smile becoz SOMEONE still Loves to see u Smiling!!
+Please call our customer service representative on 0800 169 6031 between 10am-9pm as you have WON a guaranteed £1000 cash or £5000 prize!
+Havent planning to buy later. I check already lido only got 530 show in e afternoon. U finish work already?
+Your free ringtone is waiting to be collected. Simply text the password "MIX" to 85069 to verify. Get Usher and Britney. FML, PO Box 5249, MK17 92H. 450Ppw 16
+Watching telugu movie..wat abt u?
+i see. When we finish we have loads of loans to pay
+Hi. Wk been ok - on hols now! Yes on for a bit of a run. Forgot that i have hairdressers appointment at four so need to get home n shower beforehand. Does that cause prob for u?"
+</textarea><br/>
+<div id="menu">
+<label for="topics">Topics:</label>
+<select name="topics" id="topics">
+	<option>2</option>
+	<option>3</option>
+	<option  selected="selected">4</option>
+	<option>5</option>
+	<option>6</option>
+	<option>7</option>
+	<option>8</option>
+	<option>9</option>
+	<option>10</option>
+</select><br/><input id="btnTopicise" type="button" onclick="btnTopiciseClicked();" value="Analyse"/><br/>
+</div>
+<div class="spacer"> </div>
+<div id="topiccloud"></div>
+<br/>
+<div id="output">
+</div>
+</body>
+</html>
