@@ -1,7 +1,7 @@
 lda.js
 ======
 
-LDA-Based Topic Modelling in Javascript
+[LDA-Based Topic Modelling in Javascript](http://awaisathar.github.io/lda.js/)
 
 Topic modelling means detecting “abstract” topics from a collection of text documents. The most common text book technique to do that is using Latent Dirichlet Allocation. Simply put, LDA is a statistical algorithm which takes documents as input and produces a list of topics. One catch is that you have to tell it how many topics you want. There’s much more to it but since this is not a tutorial post, I will stop here. (If you are interested in how it works, read the references given on the wiki page.)
 
